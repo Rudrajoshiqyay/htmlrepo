@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div id="chart" style="width:100%;height:600px;"></div>
+  <script>
+    var trace1 = {
+      x: ['2025-04-01', '2025-04-02', '2025-04-03'],
+      close: [1150, 1170, 1195],
+      high: [1160, 1185, 1200],
+      low: [1135, 1150, 1175],
+      open: [1145, 1160, 1180],
+      type: 'candlestick',
+      name: 'RELIANCE',
+      increasing: { line: { color: 'green' } },
+      decreasing: { line: { color: 'red' } }
+    };
+
+    var data = [trace1];
+
+    var layout = {
+      title: 'RELIANCE Candlestick Chart',
+      xaxis: { title: 'Date' },
+      yaxis: { title: 'Price (INR)' }
+    };
+
+    Plotly.newPlot('chart', data, layout);
+  </script>
+</body>
+</html>
+fig.write_html("candlestick_chart.html")
