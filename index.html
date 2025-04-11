@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Market Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Stock Market Dashboard</h1>
+    
+    <div class="search-bar">
+      <input type="text" id="stockInput" placeholder="Search for a stock (e.g., AAPL)">
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="stockChart"></canvas>
+    </div>
+
+    <div class="stock-info">
+      <h2 id="stockName">Apple Inc. (AAPL)</h2>
+      <p id="stockPrice">Price: $175.00</p>
+      <p id="stockChange">Change: <span class="positive">+1.5%</span></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
