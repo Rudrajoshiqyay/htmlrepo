@@ -1,145 +1,147 @@
-// Alpha Vantage API Key (Replace with yours)
+// Alpha Vantage API (Replace with your key)
 const API_KEY = 'YOUR_API_KEY';
+const STOCK_SYMBOL = 'RELIANCE.BSE'; // BSE symbol for Reliance
 
-// DOM Elements
-const ctx = document.getElementById('stockChart').getContext('2d');
+// Chart and Data
 let stockChart;
+let ohlcData = [];
 
-// Initialize Chart with Entry/Exit Lines
-function initChart(labels, prices, stockSymbol, entryPrice, exitPrice) {
+// Initialize Chart
+function initChart() {
+  const ctx = document.getElementById('stockChart').getContext('2d');
+  
   if (stockChart) stockChart.destroy();
 
-  const entryLine = {
-    type: 'line',
-    label: 'Entry Price',
-    borderColor: '#27ae60',
-    borderWidth: 2,
-    borderDash: [5, 5],
-    fill: false,
-    data: Array(labels.length).fill(entryPrice),
-    pointRadius: 0
-  };
-
-  const exitLine = {
-    type: 'line',
-    label: 'Exit Price',
-    borderColor: '#e74c3c',
-    borderWidth: 2,
-    borderDash: [5, 5],
-    fill: false,
-    data: Array(labels.length).fill(exitPrice),
-    pointRadius: 0
-  };
+  // Entry/Exit lines
+  const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+  const exitPrice = parseFloat(document.getElementById('exitPrice').value);
 
   stockChart = new Chart(ctx, {
-    type: 'line',
+    type: 'candlestick',
     data: {
-      labels: labels,
-      datasets: [
-        {
-          label: `${stockSymbol} Price`,
-          data: prices,
-          borderColor: '#3498db',
-          borderWidth: 3,
-          tension: 0.1
-        },
-        entryLine,
-        exitLine
-      ]
+      datasets: [{
+        label: 'RELIANCE',
+        data: ohlcData,
+        color: {
+          up: '#27ae60', // Green for bullish
+          down: '#e74c3c', // Red for bearish
+          unchanged: '#7f8c8d',
+        }
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
+        annotation: {
+          annotations: {
+            entryLine: {
+              type: 'line',
+              yMin: entryPrice,
+              yMax: entryPrice,
+              borderColor: '#3498db',
+              borderWidth: 2,
+              borderDash: [6, 6],
+              label: {
+                content: 'Entry: ₹' + entryPrice,
+                enabled: true,
+                position: 'left'
+              }
+            },
+            exitLine: {
+              type: 'line',
+              yMin: exitPrice,
+              yMax: exitPrice,
+              borderColor: '#9b59b6',
+              borderWidth: 2,
+              borderDash: [6, 6],
+              label: {
+                content: 'Exit: ₹' + exitPrice,
+                enabled: true,
+                position: 'left'
+              }
+            }
+          }
+        },
         tooltip: {
           callbacks: {
-            label: (context) => `$${context.raw.toFixed(2)}`
+            label: (ctx) => {
+              const item = ctx.raw;
+              return [
+                `Open: ₹${item.o}`,
+                `High: ₹${item.h}`,
+                `Low: ₹${item.l}`,
+                `Close: ₹${item.c}`
+              ];
+            }
           }
         }
       },
       scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'day'
+          }
+        },
         y: {
-          beginAtZero: false
+          ticks: {
+            callback: (value) => '₹' + value
+          }
         }
       }
     }
   });
+
+  detectPatterns();
 }
 
-// Fetch Real Stock Data
-async function fetchStockData(stockSymbol) {
+// Fetch Reliance OHLC Data
+async function fetchData() {
   try {
     const response = await fetch(
-      `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol}&apikey=${API_KEY}`
+      `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${STOCK_SYMBOL}&apikey=${API_KEY}&outputsize=compact`
     );
     const data = await response.json();
 
-    if (data['Error Message']) {
-      throw new Error("Invalid stock symbol");
-    }
-
     const timeSeries = data['Time Series (Daily)'];
-    const dates = Object.keys(timeSeries).slice(0, 10).reverse();
-    const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
-    const latestPrice = prices[prices.length - 1];
+    ohlcData = Object.entries(timeSeries).map(([date, values]) => ({
+      x: new Date(date),
+      o: parseFloat(values['1. open']),
+      h: parseFloat(values['2. high']),
+      l: parseFloat(values['3. low']),
+      c: parseFloat(values['4. close'])
+    })).slice(0, 30).reverse(); // Last 30 days
 
-    return { dates, prices, latestPrice };
+    initChart();
   } catch (error) {
     console.error("API Error:", error);
-    alert("Error: " + error.message);
-    return null;
+    document.getElementById('patterns').textContent = "Failed to load data. Check console.";
   }
 }
 
-// Calculate Profit/Loss
-function calculatePL(currentPrice, entryPrice, exitPrice) {
-  const pl = currentPrice - entryPrice;
-  const plPercent = (pl / entryPrice) * 100;
-  return {
-    amount: pl,
-    percent: plPercent,
-    isProfit: pl >= 0
-  };
-}
-
-// Update UI
-async function updateChart() {
-  const stockSymbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
-  const entryPrice = parseFloat(document.getElementById('entryPrice').value);
-  const exitPrice = parseFloat(document.getElementById('exitPrice').value);
-
-  if (!stockSymbol || isNaN(entryPrice) {
-    alert("Please enter a valid stock symbol and entry price");
-    return;
+// Detect Candlestick Patterns
+function detectPatterns() {
+  const patterns = [];
+  const lastCandle = ohlcData[ohlcData.length - 1];
+  
+  // Detect Inverted Hammer (Single candle pattern)
+  const isInvertedHammer = 
+    (lastCandle.h - lastCandle.l) > 3 * (lastCandle.c - lastCandle.o) && 
+    lastCandle.c > lastCandle.o;
+  
+  if (isInvertedHammer) {
+    patterns.push("🔨 Inverted Hammer (Bullish Reversal)");
   }
 
-  const stockData = await fetchStockData(stockSymbol);
-  if (!stockData) return;
+  // Add more pattern detections here...
 
-  // Update Chart
-  initChart(
-    stockData.dates.map(date => new Date(date).toLocaleDateString()),
-    stockData.prices,
-    stockSymbol,
-    entryPrice,
-    exitPrice || undefined
-  );
-
-  // Update Trade Info
-  document.getElementById('stockName').textContent = `${stockSymbol}`;
-  document.getElementById('currentPrice').textContent = `Current Price: $${stockData.latestPrice.toFixed(2)}`;
-
-  if (!isNaN(entryPrice)) {
-    const pl = calculatePL(stockData.latestPrice, entryPrice, exitPrice);
-    const plElement = document.getElementById('plResult');
-    plElement.innerHTML = `Profit/Loss: <span class="${pl.isProfit ? 'positive' : 'negative'}">$${pl.amount.toFixed(2)} (${pl.percent.toFixed(2)}%)</span>`;
-  }
+  document.getElementById('patterns').innerHTML = 
+    patterns.length > 0 ? patterns.join('<br>') : "No strong patterns detected";
 }
 
 // Event Listeners
-document.getElementById('updateBtn').addEventListener('click', updateChart);
+document.getElementById('updateBtn').addEventListener('click', initChart);
 
-// Initialize with default values
-document.getElementById('entryPrice').value = '175.00';
-document.getElementById('exitPrice').value = '180.00';
-updateChart();
+// Initialize
+fetchData();
