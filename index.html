@@ -3,27 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock Market Dashboard</title>
+  <title>Stock Trade Planner</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Stock Market Dashboard</h1>
+    <h1>Stock Trade Planner</h1>
     
-    <div class="search-bar">
-      <input type="text" id="stockInput" placeholder="Search for a stock (e.g., AAPL)">
-      <button id="searchBtn">Search</button>
+    <div class="stock-inputs">
+      <div>
+        <label for="stockSymbol">Stock Symbol:</label>
+        <input type="text" id="stockSymbol" placeholder="e.g., AAPL" value="AAPL">
+      </div>
+      <div>
+        <label for="entryPrice">Entry Price ($):</label>
+        <input type="number" id="entryPrice" step="0.01" placeholder="100.00">
+      </div>
+      <div>
+        <label for="exitPrice">Exit Price ($):</label>
+        <input type="number" id="exitPrice" step="0.01" placeholder="105.00">
+      </div>
+      <button id="updateBtn">Update Chart</button>
     </div>
 
     <div class="chart-container">
       <canvas id="stockChart"></canvas>
     </div>
 
-    <div class="stock-info">
+    <div class="trade-results">
       <h2 id="stockName">Apple Inc. (AAPL)</h2>
-      <p id="stockPrice">Price: $175.00</p>
-      <p id="stockChange">Change: <span class="positive">+1.5%</span></p>
+      <p id="currentPrice">Current Price: $175.00</p>
+      <p id="plResult">Profit/Loss: <span class="neutral">$0.00 (0.00%)</span></p>
     </div>
   </div>
 
