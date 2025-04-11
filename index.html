@@ -3,38 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock Trade Planner</title>
+  <title>RELIANCE Candlestick Chart</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Stock Trade Planner</h1>
+    <h1>RELIANCE Candlestick Chart with Entry/Exit</h1>
     
-    <div class="stock-inputs">
+    <div class="controls">
       <div>
-        <label for="stockSymbol">Stock Symbol:</label>
-        <input type="text" id="stockSymbol" placeholder="e.g., AAPL" value="AAPL">
+        <label for="entryPrice">Entry Price (₹):</label>
+        <input type="number" id="entryPrice" value="1150" step="1">
       </div>
       <div>
-        <label for="entryPrice">Entry Price ($):</label>
-        <input type="number" id="entryPrice" step="0.01" placeholder="100.00">
+        <label for="exitPrice">Exit Price (₹):</label>
+        <input type="number" id="exitPrice" value="1200" step="1">
       </div>
-      <div>
-        <label for="exitPrice">Exit Price ($):</label>
-        <input type="number" id="exitPrice" step="0.01" placeholder="105.00">
-      </div>
-      <button id="updateBtn">Update Chart</button>
+      <button id="updateBtn">Update Levels</button>
     </div>
 
     <div class="chart-container">
       <canvas id="stockChart"></canvas>
     </div>
 
-    <div class="trade-results">
-      <h2 id="stockName">Apple Inc. (AAPL)</h2>
-      <p id="currentPrice">Current Price: $175.00</p>
-      <p id="plResult">Profit/Loss: <span class="neutral">$0.00 (0.00%)</span></p>
+    <div class="pattern-info">
+      <h3>Detected Patterns:</h3>
+      <p id="patterns">Loading...</p>
     </div>
   </div>
 
