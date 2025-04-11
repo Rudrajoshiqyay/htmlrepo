@@ -1,32 +1,65 @@
-// Alpha Vantage API Key (Get a free one here: https://www.alphavantage.co/support/#api-key)
-const API_KEY = 'YOUR_API_KEY'; // Replace with your actual key
+// Alpha Vantage API Key (Replace with yours)
+const API_KEY = 'YOUR_API_KEY';
 
 // DOM Elements
 const ctx = document.getElementById('stockChart').getContext('2d');
 let stockChart;
 
-// Initialize Chart
-function initChart(labels, data, stockSymbol) {
-  if (stockChart) stockChart.destroy(); // Clear old chart
-  
+// Initialize Chart with Entry/Exit Lines
+function initChart(labels, prices, stockSymbol, entryPrice, exitPrice) {
+  if (stockChart) stockChart.destroy();
+
+  const entryLine = {
+    type: 'line',
+    label: 'Entry Price',
+    borderColor: '#27ae60',
+    borderWidth: 2,
+    borderDash: [5, 5],
+    fill: false,
+    data: Array(labels.length).fill(entryPrice),
+    pointRadius: 0
+  };
+
+  const exitLine = {
+    type: 'line',
+    label: 'Exit Price',
+    borderColor: '#e74c3c',
+    borderWidth: 2,
+    borderDash: [5, 5],
+    fill: false,
+    data: Array(labels.length).fill(exitPrice),
+    pointRadius: 0
+  };
+
   stockChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [{
-        label: `${stockSymbol} Price (USD)`,
-        data: data,
-        borderColor: '#3498db',
-        tension: 0.1
-      }]
+      datasets: [
+        {
+          label: `${stockSymbol} Price`,
+          data: prices,
+          borderColor: '#3498db',
+          borderWidth: 3,
+          tension: 0.1
+        },
+        entryLine,
+        exitLine
+      ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         tooltip: {
           callbacks: {
             label: (context) => `$${context.raw.toFixed(2)}`
           }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false
         }
       }
     }
@@ -36,7 +69,6 @@ function initChart(labels, data, stockSymbol) {
 // Fetch Real Stock Data
 async function fetchStockData(stockSymbol) {
   try {
-    // Fetch daily time series
     const response = await fetch(
       `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockSymbol}&apikey=${API_KEY}`
     );
@@ -46,32 +78,41 @@ async function fetchStockData(stockSymbol) {
       throw new Error("Invalid stock symbol");
     }
 
-    // Process data for chart (last 5 days)
     const timeSeries = data['Time Series (Daily)'];
-    const dates = Object.keys(timeSeries).slice(0, 5).reverse();
+    const dates = Object.keys(timeSeries).slice(0, 10).reverse();
     const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
-
-    // Get latest price and change %
     const latestPrice = prices[prices.length - 1];
-    const prevPrice = prices[prices.length - 2];
-    const changePercent = ((latestPrice - prevPrice) / prevPrice) * 100;
 
-    return {
-      dates,
-      prices,
-      latestPrice,
-      changePercent
-    };
-
+    return { dates, prices, latestPrice };
   } catch (error) {
     console.error("API Error:", error);
-    alert("Error fetching data. Check console or try another stock.");
+    alert("Error: " + error.message);
     return null;
   }
 }
 
-// Update UI with Real Data
-async function updateStockData(stockSymbol) {
+// Calculate Profit/Loss
+function calculatePL(currentPrice, entryPrice, exitPrice) {
+  const pl = currentPrice - entryPrice;
+  const plPercent = (pl / entryPrice) * 100;
+  return {
+    amount: pl,
+    percent: plPercent,
+    isProfit: pl >= 0
+  };
+}
+
+// Update UI
+async function updateChart() {
+  const stockSymbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+  const entryPrice = parseFloat(document.getElementById('entryPrice').value);
+  const exitPrice = parseFloat(document.getElementById('exitPrice').value);
+
+  if (!stockSymbol || isNaN(entryPrice) {
+    alert("Please enter a valid stock symbol and entry price");
+    return;
+  }
+
   const stockData = await fetchStockData(stockSymbol);
   if (!stockData) return;
 
@@ -79,22 +120,26 @@ async function updateStockData(stockSymbol) {
   initChart(
     stockData.dates.map(date => new Date(date).toLocaleDateString()),
     stockData.prices,
-    stockSymbol
+    stockSymbol,
+    entryPrice,
+    exitPrice || undefined
   );
 
-  // Update Info
+  // Update Trade Info
   document.getElementById('stockName').textContent = `${stockSymbol}`;
-  document.getElementById('stockPrice').textContent = `Price: $${stockData.latestPrice.toFixed(2)}`;
-  
-  const changeElement = document.getElementById('stockChange');
-  changeElement.innerHTML = `Change: <span class="${stockData.changePercent >= 0 ? 'positive' : 'negative'}">${stockData.changePercent >= 0 ? '+' : ''}${stockData.changePercent.toFixed(2)}%</span>`;
+  document.getElementById('currentPrice').textContent = `Current Price: $${stockData.latestPrice.toFixed(2)}`;
+
+  if (!isNaN(entryPrice)) {
+    const pl = calculatePL(stockData.latestPrice, entryPrice, exitPrice);
+    const plElement = document.getElementById('plResult');
+    plElement.innerHTML = `Profit/Loss: <span class="${pl.isProfit ? 'positive' : 'negative'}">$${pl.amount.toFixed(2)} (${pl.percent.toFixed(2)}%)</span>`;
+  }
 }
 
 // Event Listeners
-document.getElementById('searchBtn').addEventListener('click', () => {
-  const stockSymbol = document.getElementById('stockInput').value.trim().toUpperCase();
-  if (stockSymbol) updateStockData(stockSymbol);
-});
+document.getElementById('updateBtn').addEventListener('click', updateChart);
 
-// Initialize with a default stock (e.g., AAPL)
-updateStockData('AAPL');
+// Initialize with default values
+document.getElementById('entryPrice').value = '175.00';
+document.getElementById('exitPrice').value = '180.00';
+updateChart();
